@@ -40,7 +40,7 @@ def game_over(score):
     message = ''
     #messages displayed depending on score, set to be easily demonstratable for now
     if score == 0:
-        message = 'Your parents are disappointed'
+        message = '???'
     if score <= 300 and score > 0:
         message = 'Wow you suck'
     if score <= 500 and score > 300:
@@ -64,7 +64,7 @@ def game_over(score):
     screen.blit(game_over_message, message_rect)
     pygame.display.flip()
 
-    #give player 5 seconds to look at their pitiful score then quit game and program
+    #give player 3 seconds to look at their pitiful score then quit game and program
     time.sleep(3)
     pygame.quit()
     quit()
