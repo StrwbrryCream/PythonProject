@@ -13,18 +13,26 @@ white = pygame.Color(255,255,255)
 orange = pygame.Color(255,165,0)
 red = pygame.Color(255,0,0)
 blue = pygame.Color(36, 134, 209)
+black = pygame.Color(0,0,0)
 fruit_colors = [orange, red, blue]
 
 #Window Parameters
 X = 400
 Y = 400
+score_screen = 20
 
 #set game screen height, width, and caption
 screen = pygame.display.set_mode((X, Y))
 pygame.display.set_caption('Snake Game')
 
+score_rect = pygame.Rect(0, 0, X, score_screen)
+pygame.draw.rect(screen, white, score_rect)
+
 #FPS
 FPS = pygame.time.Clock()
+
+teto_pear = pygame.image.load("TetoPear.png")
+teto_pear_sized = pygame.transform.scale(teto_pear, (20, 25))
 
 #Function to display current score
 def player_score(score, color, font, size):
@@ -73,17 +81,30 @@ def game_over(score):
 class Fruit():
     def __init__(self):
         super().__init__()
-        self.position = [random.randrange(1, (X//10)) * 10, 
-                            random.randrange(1, (Y//10)) *10]
+        self.update_position()
         self.spawn = True
         self.color = orange
+        self.teto_jumpscare = random.randrange(1,21)
 
     #function that spawns fruit if applicable
     def fruit_spawn(self):
         if self.spawn == False:
-            self.position = [random.randrange(1, (X//10)) * 10, 
-                            random.randrange(1, (Y//10)) *10]
+            self.teto_jumpscare = random.randrange(1,11)
             self.color = fruit_colors[random.randrange(len(fruit_colors))]
+            self.update_position()
+            #This makes sure that the fruit about to spawn doesn't spawn inside the snakes body
+            in_body = True
+            while in_body == True:
+                in_body = False
+                for i in snake.body:
+                    if self.position == i:
+                        self.update_position()
+                        in_body = True
+    
+    def update_position(self):
+        self.position = [random.randrange(1, (X//10)) * 10, random.randrange(2, (Y//10)) *10]
+
+
 
 #Snake class
 class Snake():
@@ -147,7 +168,7 @@ class Snake():
         #checks if the snake head has hit either edge of the screen or its own body, calls game over if yes
         if self.position[0] < 0 or self.position[0] > X-10:
             game_over(snake.score)
-        if self.position[1] < 0 or self.position[1] > Y-10:
+        if self.position[1] < 20 or self.position[1] > Y-10:
             game_over(snake.score)
         for block in self.body[1:]:
             if self.position[0] == block[0] and self.position[1] == block[1]:
@@ -162,7 +183,7 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-    
+
     #needed updates for game state
     snake.movement()
     snake.snake_death()
@@ -171,15 +192,20 @@ while True:
     fruit.fruit_spawn()
     fruit.spawn = True
     screen.fill(green)
+    pygame.draw.rect(screen, white, score_rect)
 
     #displays the snake on the screen using a for loop for each segment in body
     for pos in snake.body:
         pygame.draw.rect(screen, snake_color, pygame.Rect(pos[0], pos[1], 10, 10))
     
     #displays the fruit on the screen
-    pygame.draw.rect(screen, fruit.color, pygame.Rect(fruit.position[0], fruit.position[1], 10, 10))
+    if fruit.teto_jumpscare == 6:
+        pear = pygame.Rect(fruit.position[0]-5, fruit.position[1]-12, 10, 10)
+        screen.blit(teto_pear_sized, pear)
+    else:
+        pygame.draw.rect(screen, fruit.color, pygame.Rect(fruit.position[0], fruit.position[1], 10, 10))
 
-    player_score(snake.score, white, 'times new roman', 20)
+    player_score(snake.score, black, 'times new roman', 20)
 
     pygame.display.update()
 
