@@ -15,8 +15,9 @@ black = pygame.Color(0,0,0)
 sky_blue = pygame.Color(135, 206, 250)
 light = pygame.Color(170,170,170)
 kinda_dark = pygame.Color(135, 135, 135)
+spring = pygame.Color(175, 225, 175)
 
-#importing sound effects from directory
+#importing sound effects
 death_sound = pygame.mixer.Sound("Death.mp3")
 select_sound = pygame.mixer.Sound("Select.mp3")
 eat_sound3 = pygame.mixer.Sound("Eat3.ogg")
@@ -24,11 +25,11 @@ eat_sound2 = pygame.mixer.Sound("Eat2.ogg")
 eat_sound1 = pygame.mixer.Sound("Eat1.ogg")
 eat_list = [eat_sound1, eat_sound2, eat_sound3]
 
-#import image for teto pear
+#import image for teto pear and fruits
 teto_pear = pygame.image.load("TetoPear.png")
 teto_pear_sized = pygame.transform.scale(teto_pear, (20, 25))
 apple = pygame.image.load("apple.png")
-orange_fruit = pygame.image.load("orange.png")
+orange = pygame.image.load("orange.png")
 cherry = pygame.image.load("cherry.png")
 fruit_options = ["orange", "apple", "cherry"]
 
@@ -39,11 +40,21 @@ score_screen = 20
 
 #set game screen height, width, and caption; set up the rect that score is displayed on
 screen = pygame.display.set_mode((X, Y))
-pygame.display.set_caption('Snake Game, now 50\% snakier')
+pygame.display.set_caption('Snake Game, now 50% snakier')
 score_rect = pygame.Rect(0, 0, X, score_screen)
 
 #FPS
 FPS = pygame.time.Clock()
+
+def checkerboard_pattern(screen):
+    rows = 10
+    cols = 10
+    for row in range(rows):
+        for col in range(cols):
+            x = col * 40
+            y = row * 40
+            if (row+col) % 2 == 0:
+                pygame.draw.rect(screen, spring, (x,y,40,40))
 
 #function that reads the score file and sets the high score
 def read_score_file():
@@ -60,6 +71,35 @@ def write_score_file(score):
     score = str(score)
     with open("Score_Tracker.txt", "w") as file:
         file.write(score)
+
+#function that reads from options file to set options on program startup to what the player previously had selected 
+def read_options():
+    #ensures that on first bootup game doens't crash due to lack of information in file
+    if Path("Options.txt").stat().st_size > 0:
+        with open("Options.txt") as file:
+            speed = int(file.readline())
+            checkerboard_string = (file.readline())
+            if checkerboard_string == "True":
+                checkerboard = True
+            elif checkerboard_string == "False":
+                checkerboard = False
+            else:
+                raise ValueError("No checkerboard string in file")
+    else:
+        speed = 15
+        checkerboard = True
+    return speed, checkerboard
+                 
+
+def write_options(snake):
+    speed = str(snake.speed)
+    if snake.checkerboard ==  True:
+        checkerboard = "True"
+    else:
+        checkerboard = "False"
+    with open("Options.txt", "w") as file:
+        file.write(f"{speed}\n")
+        file.write(checkerboard)
 
 #Function to display current score
 def player_score(score, high_score, color, font, size):
@@ -78,7 +118,7 @@ def player_score(score, high_score, color, font, size):
     screen.blit(high_score_surface, high_score_rect)
 
 #fucntion called on snake death
-def game_over(score, high_score, speed):
+def game_over(score, high_score, speed, checkerboard):
     message = ''
     #messages displayed depending on score, set to be easily demonstratable for now
     if score == 0:
@@ -96,8 +136,8 @@ def game_over(score, high_score, speed):
 
     #set font size and color
     font = pygame.font.SysFont('comic sans', 28)
-    game_over_screen = font.render(f"Total Score: {str(score)}", True, sky_blue)
-    game_over_message = font.render(f"{message}", True, sky_blue)
+    game_over_screen = font.render(f"Total Score: {str(score)}", True, black)
+    game_over_message = font.render(f"{message}", True, black)
 
     #Create rect for game over screen to appear on and set position
     message_rect = game_over_message.get_rect()
@@ -113,7 +153,7 @@ def game_over(score, high_score, speed):
     #give player 3 seconds to look at their pitiful score then returns to the main menu
     time.sleep(3)
     state = True
-    snake = Snake(speed)
+    snake = Snake(speed, checkerboard)
     fruit = Fruit()
     menu_screen(state, snake, fruit)
 
@@ -153,10 +193,11 @@ def menu_screen(state, snake, fruit):
                 #if the playeer selects "options" takes them to option menu by calling options(screen)
                 if options_button.collidepoint(mouse):
                     select_sound.play()
-                    options_screen(snake.speed)
+                    options_screen(snake.speed, snake.checkerboard)
                 #if the player selects "quit" quits the game and closes the window
                 if quit_button.collidepoint(mouse):
                     select_sound.play()
+                    write_options(snake)
                     time.sleep(1)
                     pygame.quit()
                     sys.exit()
@@ -168,7 +209,7 @@ def menu_screen(state, snake, fruit):
     game_loop(snake, fruit)
 
 #function for the options screen
-def options_screen(speed):
+def options_screen(speed, checkerboard):
     options = True
     state = True
 
@@ -176,16 +217,20 @@ def options_screen(speed):
         #sets needed variables for the options meny
         screen.fill(sky_blue)
         mouse = pygame.mouse.get_pos()
-        speed1 = pygame.Rect(100, 100, 50, 50)
-        speed2 = pygame.Rect(175, 100, 50, 50)
-        speed3 = pygame.Rect(250, 100, 50, 50)
-        reset_score = pygame.Rect(100, 200, 200, 50)
+        speed1 = pygame.Rect(100, 50, 50, 50)
+        speed2 = pygame.Rect(175, 50, 50, 50)
+        speed3 = pygame.Rect(250, 50, 50, 50)
+        checkerboard_on = pygame.Rect(137, 150, 50, 50)
+        checkerboard_off = pygame.Rect(218, 150, 50, 50)
+        reset_score = pygame.Rect(100, 220, 200, 50)
         return_to_menu = pygame.Rect(90, 300, 230, 50)
 
         #draws rects for options buttons
         pygame.draw.rect(screen, white if speed == 10 else kinda_dark if speed1.collidepoint(mouse) else light, speed1)
         pygame.draw.rect(screen, white if speed == 15 else kinda_dark if speed2.collidepoint(mouse) else light, speed2)
         pygame.draw.rect(screen, white if speed == 20 else kinda_dark if speed3.collidepoint(mouse) else light, speed3)
+        pygame.draw.rect(screen, white if checkerboard else kinda_dark if checkerboard_on.collidepoint(mouse) else light, checkerboard_on)
+        pygame.draw.rect(screen, white if not checkerboard else kinda_dark if checkerboard_off.collidepoint(mouse) else light, checkerboard_off)
         pygame.draw.rect(screen, kinda_dark if reset_score.collidepoint(mouse) else light, reset_score)
         pygame.draw.rect(screen, kinda_dark if return_to_menu.collidepoint(mouse) else light, return_to_menu)
 
@@ -195,15 +240,19 @@ def options_screen(speed):
         speed1_text = font.render("10", True, black)
         speed2_text = font.render("15", True, black)
         speed3_text = font.render("20", True, black)
+        checkerboard_text = font.render("Checkerboard", True, black)
         reset_score_text = font.render("Reset Score", True, black)
         return_to_menu_text = font.render("Return to Menu", True, black)
 
         #draws the text on screen over their respective buttons
-        screen.blit(speed_text, (110, 55))
-        screen.blit(speed1_text, (110, 105))
-        screen.blit(speed2_text, (185, 105))
-        screen.blit(speed3_text, (260, 105))
-        screen.blit(reset_score_text, (120, 205))
+        screen.blit(speed_text, (110, 5))
+        screen.blit(speed1_text, (110, 55))
+        screen.blit(speed2_text, (185, 55))
+        screen.blit(speed3_text, (260, 55))
+        screen.blit(checkerboard_text, (110, 100))
+        screen.blit(font.render("On", True, black), (142, 155))
+        screen.blit(font.render("Off", True, black), (219, 155))
+        screen.blit(reset_score_text, (120, 225))
         screen.blit(return_to_menu_text, (100, 305))
 
         for event in pygame.event.get():
@@ -218,6 +267,13 @@ def options_screen(speed):
                 if speed3.collidepoint(mouse):
                     select_sound.play()
                     speed = 20
+                #option to turn on or off a checkerboard pattern for the background
+                if checkerboard_on.collidepoint(mouse):
+                    select_sound.play()
+                    checkerboard = True
+                if checkerboard_off.collidepoint(mouse):
+                    select_sound.play()
+                    checkerboard = False
                 #option to reset the highscore for the game back to 0
                 if reset_score.collidepoint(mouse):
                     write_score_file(0)
@@ -225,7 +281,7 @@ def options_screen(speed):
                 #returns back to the main menu
                 if return_to_menu.collidepoint(mouse):
                     select_sound.play()
-                    snake = Snake(speed)
+                    snake = Snake(speed, checkerboard)
                     fruit = Fruit()
                     menu_screen(state, snake, fruit)
         pygame.display.update()
@@ -256,12 +312,13 @@ class Fruit():
     
     #creates a randomized position for the fruit to spawn
     def update_position(self):
-        self.position = [random.randrange(1, (X//10)) * 10, random.randrange(2, (Y//10)) *10]
+        self.position = [random.randrange(0, (X//10)) * 10, random.randrange(2, (Y//10)) *10]
 
 #Snake class
 class Snake():
     speed = 0
-    def __init__(self, speed):
+    checkerboard = True
+    def __init__(self, speed, checkerboard):
         self.position = [100,50]
         self.body = [[100, 50], 
                     [90, 50], 
@@ -270,6 +327,7 @@ class Snake():
         self.speed = speed
         self.direction = 'right'
         self.score = 0
+        self.checkerboard = checkerboard
         
     #Movement function
     def movement(self):
@@ -327,14 +385,14 @@ class Snake():
         #checks if the snake head has hit either edge of the screen or its own body, calls game over if yes
         if self.position[0] < 0 or self.position[0] > X-10:
             death_sound.play()
-            game_over(self.score, high_score, self.speed)
+            game_over(self.score, high_score, self.speed, self.checkerboard)
         if self.position[1] < 20 or self.position[1] > Y-10:
             death_sound.play()
-            game_over(self.score, high_score, self.speed)
+            game_over(self.score, high_score, self.speed, self.checkerboard)
         for block in self.body[1:]:
             if self.position[0] == block[0] and self.position[1] == block[1]:
                 death_sound.play()
-                game_over(self.score, high_score, self.speed)
+                game_over(self.score, high_score, self.speed, self.checkerboard)
 
 #Game loop funtion
 def game_loop(snake, fruit):
@@ -350,6 +408,8 @@ def game_loop(snake, fruit):
     
         #sets the color of the screen to green
         screen.fill(green)
+        if snake.checkerboard:
+            checkerboard_pattern(screen)
 
         #needed updates using the snake class
         snake.movement()
@@ -366,7 +426,7 @@ def game_loop(snake, fruit):
 
         #displays the snake on the screen using a for loop for each segment in body
         for pos in snake.body:
-            pygame.draw.rect(screen, snake_color, pygame.Rect(pos[0], pos[1], 10, 10))
+            pygame.draw.rect(screen,  snake_color, pygame.Rect(pos[0], pos[1], 10, 10))
     
         #displays the fruit on the screen
         fruit_rect = (fruit.position[0], fruit.position[1], 10, 10)
@@ -376,7 +436,7 @@ def game_loop(snake, fruit):
         elif fruit.choice == "apple":
             screen.blit(apple, fruit_rect)
         elif fruit.choice == "orange":
-            screen.blit(orange_fruit, fruit_rect)
+            screen.blit(orange, fruit_rect)
         elif fruit.choice == "cherry":
             screen.blit(cherry, fruit_rect)
 
@@ -388,7 +448,8 @@ def game_loop(snake, fruit):
         FPS.tick(snake.speed)
 
 #sets initial needed values and calls the menu screen
-snake = Snake(15)
+start_speed, start_checkerboard = read_options()
+snake = Snake(start_speed, start_checkerboard)
 fruit = Fruit()
 state = True
 menu_screen(state, snake, fruit)
